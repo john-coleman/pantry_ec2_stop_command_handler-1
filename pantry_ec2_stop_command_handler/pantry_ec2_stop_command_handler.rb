@@ -10,7 +10,13 @@ module Wonga
         @logger.info("Received stop message for instance: #{message["name"]} - request_id: #{message["id"]}")
         ec2 = AWS::EC2.new
         instance = ec2.instances[message['instance_id']]
-        case instance.status
+        begin
+          status = instance.status
+        rescue AWS::EC2::Errors::InvalidInstanceID::NotFound
+          @logger.error("ERROR: machine not found #{message["name"]} - request_id: #{message["id"]}")
+          return
+        end
+        case status
         when :stopped 
           @logger.info("Stopped instance: #{message["name"]} - request_id: #{message["id"]} - publishing")
           @publisher.publish message          
