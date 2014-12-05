@@ -19,14 +19,14 @@ module Wonga
         end
         case status
         when :stopped
-          @logger.info("Stopped instance: #{message['name']} - request_id: #{message['id']} - publishing")
+          @logger.info("Stopped instance: #{message['name']} - request_id: #{message['id']}")
           @publisher.publish message
           return
         when :terminated
           send_error_message(message)
           return
         when :running
-          @logger.info("Stopping instance: #{message['name']} - request_id: #{message['id']} - publishing")
+          @logger.info("Stopping instance: #{message['name']} - request_id: #{message['id']}")
           instance.stop
         end
         fail "Instance #{message['instance_id']} still pending"
