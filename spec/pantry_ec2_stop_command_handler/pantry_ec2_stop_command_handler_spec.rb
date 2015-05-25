@@ -1,12 +1,13 @@
 require 'spec_helper'
 require_relative '../../pantry_ec2_stop_command_handler/pantry_ec2_stop_command_handler'
+require 'wonga/daemon/publisher'
+require 'logger'
+require 'wonga/daemon/aws_resource'
 
 RSpec.describe Wonga::Daemon::PantryEc2StopCommandHandler do
-  let(:publisher) { instance_double('Wonga::Daemon::Publisher').as_null_object }
-  let(:error_publisher) { instance_double('Wonga::Daemon::Publisher').as_null_object }
+  let(:publisher) { instance_double('Wonga::Daemon::Publisher') }
   let(:logger)    { instance_double('Logger').as_null_object }
-  let(:instance)  { instance_double('AWS::EC2::Instance', instance_id: 'i-f4819cb9').as_null_object }
-  let(:ec2)       { instance_double('AWS::EC2') }
+  let(:aws_resource)    { instance_double('Wonga::Daemon::AwsResource', stop: true) }
 
   let(:message) do
     {
@@ -18,55 +19,22 @@ RSpec.describe Wonga::Daemon::PantryEc2StopCommandHandler do
   end
 
   subject do
-    described_class.new(publisher, error_publisher, logger)
+    described_class.new(publisher, aws_resource, logger)
   end
+
   it_behaves_like 'handler'
 
   describe '#handle_message' do
-    before(:each) do
-      allow(AWS::EC2).to receive(:new).and_return(ec2)
-      allow(ec2).to receive(:instances).and_return('i-f4819cb9' => instance)
-      allow(publisher).to receive(:publish)
+    it 'sends message' do
+      expect(publisher).to receive(:publish).with(message)
+      subject.handle_message message
     end
 
-    context 'Machine stopped' do
-      it 'should publish' do
-        allow(instance).to receive(:status).and_return(:stopped)
-        publisher.should_receive(:publish)
-        subject.handle_message(message)
+    context 'when machine can not be stopped' do
+      let(:aws_resource)    { instance_double('Wonga::Daemon::AwsResource', stop: false) }
+      it 'does nothing' do
+        subject.handle_message message
       end
-    end
-
-    context 'Machine running' do
-      it 'Attempts to stop the instance' do
-        allow(instance).to receive(:status).and_return(:running)
-        expect { subject.handle_messsage(message) }.to raise_error
-      end
-    end
-
-    context 'Otherwise(pending)' do
-      it 'raises a benign error' do
-        expect { subject.handle_messsage(message) }.to raise_error
-      end
-    end
-  end
-
-  describe '#handle_message publishes message to error topic for terminated instance' do
-    let(:instance) { instance_double('AWS::EC2::Instance', instance_id: 'i-f4819cb9', status: :terminated).as_null_object }
-
-    before(:each) do
-      allow(AWS::EC2).to receive(:new).and_return(ec2)
-      allow(ec2).to receive(:instances).and_return('i-f4819cb9' => instance)
-    end
-
-    it 'publishes message to error topic' do
-      subject.handle_message(message)
-      expect(error_publisher).to have_received(:publish).with(message)
-    end
-
-    it 'does not publish message to topic' do
-      subject.handle_message(message)
-      expect(publisher).to_not have_received(:publish)
     end
   end
 end
