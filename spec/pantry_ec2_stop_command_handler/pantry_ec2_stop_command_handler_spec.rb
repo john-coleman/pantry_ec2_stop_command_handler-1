@@ -6,8 +6,8 @@ require 'wonga/daemon/aws_resource'
 
 RSpec.describe Wonga::Daemon::PantryEc2StopCommandHandler do
   let(:publisher) { instance_double('Wonga::Daemon::Publisher') }
-  let(:logger)    { instance_double('Logger').as_null_object }
-  let(:aws_resource)    { instance_double('Wonga::Daemon::AwsResource', stop: true) }
+  let(:logger) { instance_double('Logger').as_null_object }
+  let(:aws_resource) { instance_double('Wonga::Daemon::AwsResource', stop: true) }
 
   let(:message) do
     {
@@ -31,7 +31,7 @@ RSpec.describe Wonga::Daemon::PantryEc2StopCommandHandler do
     end
 
     context 'when machine can not be stopped' do
-      let(:aws_resource)    { instance_double('Wonga::Daemon::AwsResource', stop: false) }
+      let(:aws_resource) { instance_double('Wonga::Daemon::AwsResource', stop: false) }
       it 'does nothing' do
         subject.handle_message message
       end
